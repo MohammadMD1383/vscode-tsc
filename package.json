@@ -1,0 +1,114 @@
+{
+	"name": "vscode-tsc",
+	"publisher": "MMD",
+	"displayName": "VSCode Typescript Compiler",
+	"description": "A tool for compiling typescript without need of NodeJS to be installed",
+	"version": "1.0.0",
+	"engines": {
+		"vscode": "^1.30.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:vscode-tsc.compileCurrentSingleFile"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "vscode-tsc.compileCurrentSingleFile",
+				"title": "Compile Current File",
+				"category": "VSCode TSC",
+				"enablement": "editorLangId == typescript",
+				"icon": {
+					"light": "res/icon/compile-single-file/tsc-compile-single-file@light.svg",
+					"dark": "res/icon/compile-single-file/tsc-compile-single-file@dark.svg"
+				}
+			}
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "vscode-tsc.compileCurrentSingleFile",
+					"when": "editorLangId == typescript",
+					"group": "navigation"
+				}
+			]
+		},
+		"configuration": [
+			{
+				"title": "VSCode TSC",
+				"properties": {
+					"vscode-tsc.singleCompilationCompilerOptions.module": {
+						"type": "string",
+						"default": "ES2020",
+						"enum": [
+							"AMD",
+							"CommonJs",
+							"ES2015",
+							"ES2020",
+							"ESNext",
+							"None",
+							"System",
+							"UMD"
+						],
+						"description": "the module to be compiled for"
+					},
+					"vscode-tsc.singleCompilationCompilerOptions.target": {
+						"type": "string",
+						"default": "ES2020",
+						"enum": [
+							"ES2015",
+							"ES2016",
+							"ES2017",
+							"ES2018",
+							"ES2019",
+							"ES2020",
+							"ES2021",
+							"ES3",
+							"ES5",
+							"ESNext",
+							"JSON",
+							"Latest"
+						],
+						"description": "the target to be compiled to"
+					},
+					"vscode-tsc.singleCompilationCompilerOptions.strict": {
+						"type": "boolean",
+						"default": false,
+						"description": "whether to enable strict mode or not"
+					},
+					"vscode-tsc.singleCompilationCompilerOptions.removeComments": {
+						"type": "boolean",
+						"default": false,
+						"description": "whether to remove comments after compile or not"
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js"
+	},
+	"dependencies": {
+		"typescript": "^4.3.4"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.57.0",
+		"@types/glob": "^7.1.3",
+		"@types/mocha": "^8.2.2",
+		"@types/node": "14.x",
+		"eslint": "^7.27.0",
+		"@typescript-eslint/eslint-plugin": "^4.26.0",
+		"@typescript-eslint/parser": "^4.26.0",
+		"glob": "^7.1.7",
+		"mocha": "^8.4.0",
+		"vscode-test": "^1.5.2"
+	}
+}
