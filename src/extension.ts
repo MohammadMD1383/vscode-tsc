@@ -37,15 +37,21 @@ export function activate(context: vscode.ExtensionContext) {
 						{ enableScripts: true }
 					);
 					const htmlPath = path.join(context.extensionPath, "res/html/LiveView.html");
-					const scriptPath = liveViewWebView.webview.asWebviewUri(getFileUri(context, "res/dist/highlight.min.js"));
+					const script1Path = liveViewWebView.webview.asWebviewUri(getFileUri(context, "res/dist/highlight.min.js"));
+					const script2Path = liveViewWebView.webview.asWebviewUri(getFileUri(context, "res/dist/javascript.min.js"));
 					const stylePath = liveViewWebView.webview.asWebviewUri(getFileUri(context, `res/dist/styles/${getThemeName()}.min.css`));
 
 					let htmlFileContent = fs.readFileSync(htmlPath, { encoding: "utf8" });
-					htmlFileContent = htmlFileContent.replace("{{script}}", scriptPath.toString());
+					htmlFileContent = htmlFileContent.replace("{{script1}}", script1Path.toString());
+					htmlFileContent = htmlFileContent.replace("{{script2}}", script2Path.toString());
 					htmlFileContent = htmlFileContent.replace("{{style}}", stylePath.toString());
 					liveViewWebView.webview.html = htmlFileContent;
 
-					let compiledCode: ts.TranspileOutput;
+					let compiledCode: ts.TranspileOutput = compileTsTextWithSourceMap(vscode.window.activeTextEditor!.document.getText());
+					liveViewWebView.webview.postMessage({
+						kind: "code",
+						code: compiledCode.outputText,
+					});
 
 					const textChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
 						if (event.document !== vscode.window.activeTextEditor?.document || event.document.languageId !== "typescript") {
