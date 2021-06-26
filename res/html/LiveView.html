@@ -6,29 +6,93 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>LiveView</title>
 
-		<link rel="stylesheet" href="{{style}}">
+		<link rel="stylesheet" href="{{style}}" />
 		<script src="{{script}}"></script>
 
 		<style>
+			* {
+				font-family: var(--vscode-editor-font-family) !important;
+				font-size: var(--vscode-editor-font-size) !important;
+				font-weight: var(--vscode-editor-font-size) !important;
+			}
+
+			body {
+				position: relative;
+				padding: 0;
+				margin: 10px;
+			}
+
 			pre {
-				font-family: var(--vscode-editor-font-family);
-				font-size: var(--vscode-editor-font-size);
-				font-weight: var(--vscode-editor-font-size);
+				background-color: transparent !important;
+				z-index: 10;
+			}
+
+			div#highlighter {
+				position: absolute;
+				color: transparent;
+				display: inline-block;
+				background-color: yellow;
+				z-index: -1;
+				transition: all 0.2s ease-in-out;
+			}
+
+			span#determiner {
+				opacity: 0;
+				pointer-events: none;
 			}
 		</style>
 	</head>
 
 	<body>
-		<pre></pre>
+		<pre class="language-javascript"></pre>
+
+		<div id="highlighter"></div>
+
+		<span id="determiner"></span>
 	</body>
 
 	<script>
-		const pre = document.querySelector("pre");
+		/** @type {HTMLPreElement} */
+		const codeHolder = document.querySelector("pre");
+
+		/** @type {HTMLDivElement} */
+		const highlighter = document.getElementById("highlighter");
+
+		/** @type{HTMLSpanElement} */
+		const determiner = document.getElementById("determiner");
+
+		const COUNT = 200;
+		determiner.textContent = "0".repeat(COUNT);
+		const lineHeight = determiner.offsetHeight,
+			charWidth = determiner.offsetWidth / COUNT;
+		determiner.remove();
 
 		window.addEventListener("message", (event) => {
-			const { code, highlight } = event.data;
+			switch (event.data.kind) {
+				case "code":
+					codeHolder.innerHTML = event.data.code;
+					hljs.highlightElement(codeHolder);
+					document.querySelector(".hljs-comment:last-child").remove();
+					break;
+				case "highlight":
+					let highlight = event.data.highlight;
+					const lineNo = highlight.line - 1,
+						start = highlight.column,
+						end = highlight.lastColumn === null ? -1 : highlight.lastColumn + 1;
 
-			pre.innerHTML = code;
+					doHighlight(lineNo, start, end - start);
+					break;
+			}
 		});
+
+		function doHighlight(row, col, length) {
+			if (length === 0) length = 1;
+			else if (length < 0) length = 0;
+
+			highlighter.style.width = `${length * charWidth}px`;
+			highlighter.style.height = `${lineHeight}px`;
+			highlighter.style.top = `${row * lineHeight}px`;
+			highlighter.style.left = `${col * charWidth}px`;
+		}
 	</script>
 </html>

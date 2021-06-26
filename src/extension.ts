@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { compileTsText, getJsFileName } from "./util/typescriptHelper";
-import { getFileUri } from "./util/util";
+import * as sm from "source-map";
+import { compileTsText, compileTsTextWithSourceMap, getJsFileName } from "./util/typescriptHelper";
+import { getFileUri, getThemeName } from "./util/util";
+import ts = require("typescript");
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
@@ -36,23 +38,52 @@ export function activate(context: vscode.ExtensionContext) {
 					);
 					const htmlPath = path.join(context.extensionPath, "res/html/LiveView.html");
 					const scriptPath = liveViewWebView.webview.asWebviewUri(getFileUri(context, "res/dist/highlight.min.js"));
-					const stylePath = liveViewWebView.webview.asWebviewUri(getFileUri(context, "res/dist/css/styles/vs.min.css"));
+					const stylePath = liveViewWebView.webview.asWebviewUri(getFileUri(context, `res/dist/styles/${getThemeName()}.min.css`));
 
 					let htmlFileContent = fs.readFileSync(htmlPath, { encoding: "utf8" });
 					htmlFileContent = htmlFileContent.replace("{{script}}", scriptPath.toString());
 					htmlFileContent = htmlFileContent.replace("{{style}}", stylePath.toString());
 					liveViewWebView.webview.html = htmlFileContent;
 
-					vscode.workspace.onDidChangeTextDocument((event) => {
+					let compiledCode: ts.TranspileOutput;
+
+					const textChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
 						if (event.document !== vscode.window.activeTextEditor?.document || event.document.languageId !== "typescript") {
 							liveViewWebView.dispose();
 							return;
 						}
 
-						liveViewWebView.webview.postMessage({
-							code: compileTsText(event.document.getText()),
-							highlight: null,
+						compiledCode = compileTsTextWithSourceMap(event.document.getText());
+
+						try {
+							liveViewWebView.webview.postMessage({
+								kind: "code",
+								code: compiledCode.outputText,
+							});
+						} catch {
+							textChangeListener.dispose();
+						}
+					});
+
+					const cursorMoveListener = vscode.window.onDidChangeTextEditorSelection(async (event) => {
+						if (event.textEditor.document !== vscode.window.activeTextEditor!.document) return;
+
+						const sel = await sm.SourceMapConsumer.with(JSON.parse(compiledCode.sourceMapText!), null, (consumer) => {
+							return consumer.generatedPositionFor({
+								source: "module.ts",
+								line: vscode.window.activeTextEditor!.selection.active.line + 1,
+								column: vscode.window.activeTextEditor!.selection.active.character,
+							});
 						});
+
+						try {
+							liveViewWebView.webview.postMessage({
+								kind: "highlight",
+								highlight: sel,
+							});
+						} catch {
+							cursorMoveListener.dispose();
+						}
 					});
 					break;
 
@@ -81,7 +112,8 @@ export function activate(context: vscode.ExtensionContext) {
 						vscode.window.showWarningMessage("Please save this file before using this action.");
 						return;
 					}
-					// TODO: check for is dirty
+					if (vscode.window.activeTextEditor!.document.isDirty) await vscode.window.activeTextEditor!.document.save();
+
 					fileName = path.basename(vscode.window.activeTextEditor!.document.fileName);
 					const filePath = vscode.window.activeTextEditor!.document.uri.fsPath;
 					const newFilePath = getJsFileName(filePath);
