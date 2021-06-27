@@ -11,8 +11,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:vscode-tsc.compileCurrentSingleFile",
-		"workspaceContains:**/tsconfig.json"
+		"workspaceContains:**/tsconfig.json",
+		"onCommand:vscode-tsc.compileCurrentSingleFile"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -26,6 +26,12 @@
 					"light": "res/icon/compile-single-file/tsc-compile-single-file@light.svg",
 					"dark": "res/icon/compile-single-file/tsc-compile-single-file@dark.svg"
 				}
+			},
+			{
+				"command": "vscode-tsc.compileProject",
+				"title": "Compile Project",
+				"category": "VSCode TSC",
+				"enablement": "vscode-tsc.isTsProject"
 			}
 		],
 		"menus": {
@@ -34,11 +40,6 @@
 					"command": "vscode-tsc.compileCurrentSingleFile",
 					"when": "editorLangId == typescript",
 					"group": "navigation"
-				}
-			],
-			"statusBar/remoteIndicator": [
-				{
-					"command": "vscode-tsc.compileProject"
 				}
 			]
 		},

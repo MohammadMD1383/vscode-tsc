@@ -2,11 +2,33 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import * as sm from "source-map";
-import { compileTsText, compileTsTextWithSourceMap, getJsFileName } from "./util/typescriptHelper";
-import { getFileUri, getThemeName } from "./util/util";
-import ts = require("typescript");
+import { TranspileOutput } from "typescript";
+import { compileProject, compileTsText, compileTsTextWithSourceMap, getJsFileName, readConfigFile } from "./util/typescriptHelper";
+import { checkForTsConfig, getFileUri, getThemeName } from "./util/util";
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
+	if (vscode.workspace.name) {
+		const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 4);
+		statusBarItem.command = "vscode-tsc.compileProject";
+		statusBarItem.text = "$(zap) Compile Project";
+		context.subscriptions.push(statusBarItem);
+
+		checkForTsConfig(statusBarItem);
+
+		const createFileListener = vscode.workspace.onDidCreateFiles(() => {
+			checkForTsConfig(statusBarItem);
+		});
+
+		const deleteFileListener = vscode.workspace.onDidDeleteFiles(() => {
+			checkForTsConfig(statusBarItem);
+		});
+
+		const renameFileListener = vscode.workspace.onDidRenameFiles(() => {
+			checkForTsConfig(statusBarItem);
+		});
+	}
+
+	// commands
 	context.subscriptions.push(
 		vscode.commands.registerCommand("vscode-tsc.compileCurrentSingleFile", async () => {
 			const quickPickList: Array<vscode.QuickPickItem> = [
@@ -47,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
 					htmlFileContent = htmlFileContent.replace("{{style}}", stylePath.toString());
 					liveViewWebView.webview.html = htmlFileContent;
 
-					let compiledCode: ts.TranspileOutput = compileTsTextWithSourceMap(vscode.window.activeTextEditor!.document.getText());
+					let compiledCode: TranspileOutput = compileTsTextWithSourceMap(vscode.window.activeTextEditor!.document.getText());
 					liveViewWebView.webview.postMessage({
 						kind: "code",
 						code: compiledCode.outputText,
@@ -155,6 +177,58 @@ export function activate(context: vscode.ExtensionContext) {
 					});
 					break;
 			}
+		}),
+		vscode.commands.registerCommand("vscode-tsc.compileProject", async () => {
+			const tsConfigFiles = (await vscode.workspace.findFiles("**/tsconfig.json")).map((uri) => {
+				return uri.fsPath;
+			});
+			let tsConfigPath: string;
+
+			if (tsConfigFiles.length > 1) {
+				const items: vscode.QuickPickItem[] = tsConfigFiles.map((item, i) => {
+					return {
+						label: path.relative(vscode.workspace.workspaceFolders![0].uri.fsPath, item),
+						description: i.toString(),
+						detail: item,
+					};
+				});
+
+				const selection = await vscode.window.showQuickPick(items);
+				if (!selection) return;
+
+				tsConfigPath = tsConfigFiles[+selection.description!];
+			} else {
+				tsConfigPath = tsConfigFiles[0];
+			}
+
+			vscode.window.withProgress(
+				{
+					location: vscode.ProgressLocation.Notification,
+					cancellable: false,
+				},
+				async (progress) => {
+					progress.report({ message: "Compiling...", increment: 33 });
+					const tsSearchLocation = path.relative(
+						vscode.workspace.workspaceFolders![0].uri.fsPath,
+						path.join(path.dirname(tsConfigPath), "**/*.ts")
+					);
+					const tsFiles = (await vscode.workspace.findFiles(tsSearchLocation)).map((uri) => {
+						return uri.fsPath;
+					});
+
+					const tsConfig = readConfigFile(tsConfigPath); // FIXME: add support for include/exclude and others ...
+
+					progress.report({ increment: 33 });
+					compileProject(tsFiles, tsConfig);
+
+					progress.report({ message: "Done!", increment: 34 });
+					return new Promise<void>((resolve) => {
+						setTimeout(() => {
+							resolve();
+						}, 1000);
+					});
+				}
+			);
 		})
 	);
 }
