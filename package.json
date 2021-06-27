@@ -1,9 +1,14 @@
 {
+	"publisher": "MohammadMD",
 	"name": "vscode-tsc",
-	"publisher": "MMD",
 	"displayName": "VSCode Typescript Compiler",
 	"description": "A tool for compiling typescript without need of NodeJS to be installed",
 	"version": "1.0.0",
+	"repository": "https://github.com/MohammadMD1383/vscode-tsc",
+	"homepage": "https://github.com/MohammadMD1383/vscode-tsc/blob/master/README.md",
+	"bugs": {
+		"url": "https://github.com/MohammadMD1383/vscode-tsc/issues"
+	},
 	"engines": {
 		"vscode": "^1.50.0"
 	},
@@ -11,8 +16,7 @@
 		"Other"
 	],
 	"activationEvents": [
-		"workspaceContains:**/tsconfig.json",
-		"onCommand:vscode-tsc.compileCurrentSingleFile"
+		"*"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
