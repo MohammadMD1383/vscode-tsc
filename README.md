@@ -25,7 +25,7 @@ Compile typescript in visual studio code without need of installing **Node.js**
 **Single Compilation**-**Live View**:
 
 1. open any `.ts` file
-2. click the <img src="https://github.com/MohammadMD1383/vscode-tsc/blob/master/res/icon/compile-single-file/tsc-compile-single-file%40dark.svg" alt="Image" width="15" style="vertical-align:middle;"> icon at top right of editor
+2. click the <img src="https://github.com/MohammadMD1383/vscode-tsc/blob/master/res/icon/compile-single-file/png/tsc-compile-single-file%40dark.png" alt="Image" width="15" style="vertical-align:middle;"> icon at top right of editor
 3. choose the compilation mode
 
 **Compile Project**:
