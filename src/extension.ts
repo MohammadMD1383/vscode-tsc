@@ -2,11 +2,21 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import * as sm from "source-map";
-import { TranspileOutput } from "typescript";
-import { compileProject, compileTsText, compileTsTextWithSourceMap, getJsFileName, readConfigFile } from "./util/typescriptHelper";
+import { transpileModule, TranspileOptions, TranspileOutput } from "typescript";
+import {
+	compileProject,
+	compileTsText,
+	compileTsTextWithSourceMap,
+	destroyWatch,
+	getActiveWatches,
+	getJsFileName,
+	readConfigFile,
+	watchProject,
+} from "./util/typescriptHelper";
 import { checkForTsConfig, getFileUri, getThemeName } from "./util/util";
 
 export async function activate(context: vscode.ExtensionContext) {
+	// create `compile project` status bar icon
 	if (vscode.workspace.name) {
 		const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 4);
 		statusBarItem.command = "vscode-tsc.compileProject";
@@ -39,9 +49,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			];
 
 			const selection = await vscode.window.showQuickPick(quickPickList, {
+				canPickMany: false,
 				title: "Compile Current File",
 				placeHolder: "Choose where to compile",
-				canPickMany: false,
 			});
 
 			if (!selection) return;
@@ -75,6 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
 						code: compiledCode.outputText,
 					});
 
+					// detect text change to trigger compile
 					const textChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
 						if (event.document !== vscode.window.activeTextEditor?.document || event.document.languageId !== "typescript") {
 							liveViewWebView.dispose();
@@ -83,6 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 						compiledCode = compileTsTextWithSourceMap(event.document.getText());
 
+						// dispose callback if webview is disposed
 						try {
 							liveViewWebView.webview.postMessage({
 								kind: "code",
@@ -93,9 +105,11 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 					});
 
+					// detect cursor change
 					const cursorMoveListener = vscode.window.onDidChangeTextEditorSelection(async (event) => {
 						if (event.textEditor.document !== vscode.window.activeTextEditor!.document) return;
 
+						// get generated position for js from source map
 						const sel = await sm.SourceMapConsumer.with(JSON.parse(compiledCode.sourceMapText!), null, (consumer) => {
 							return consumer.generatedPositionFor({
 								source: "module.ts",
@@ -104,6 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							});
 						});
 
+						// dispose callback if webview is disposed
 						try {
 							liveViewWebView.webview.postMessage({
 								kind: "highlight",
@@ -178,14 +193,17 @@ export async function activate(context: vscode.ExtensionContext) {
 					break;
 			}
 		}),
+
 		vscode.commands.registerCommand("vscode-tsc.compileProject", async () => {
+			// find all tsconfig files in project
 			const tsConfigFiles = (await vscode.workspace.findFiles("**/tsconfig.json")).map((uri) => {
 				return uri.fsPath;
 			});
 			let tsConfigPath: string;
 
+			// let user choose which one to compile
 			if (tsConfigFiles.length > 1) {
-				const items: vscode.QuickPickItem[] = tsConfigFiles.map((item, i) => {
+				const items: Array<vscode.QuickPickItem> = tsConfigFiles.map((item, i) => {
 					return {
 						label: path.relative(vscode.workspace.workspaceFolders![0].uri.fsPath, item),
 						description: i.toString(),
@@ -193,11 +211,17 @@ export async function activate(context: vscode.ExtensionContext) {
 					};
 				});
 
-				const selection = await vscode.window.showQuickPick(items);
+				const selection = await vscode.window.showQuickPick(items, {
+					canPickMany: false,
+					title: "Compile Project",
+					placeHolder: "Choose tsconfig root",
+				});
 				if (!selection) return;
 
 				tsConfigPath = tsConfigFiles[+selection.description!];
-			} else {
+			}
+			// else is always `1`. because the availability of this command is to exist at least one tsconfig file
+			else {
 				tsConfigPath = tsConfigFiles[0];
 			}
 
@@ -216,7 +240,7 @@ export async function activate(context: vscode.ExtensionContext) {
 						return uri.fsPath;
 					});
 
-					const tsConfig = readConfigFile(tsConfigPath); // FIXME: add support for include/exclude and others ...
+					const tsConfig = readConfigFile(tsConfigPath); // TODO: add support for include/exclude and others ...
 
 					progress.report({ increment: 33 });
 					compileProject(tsFiles, tsConfig);
@@ -229,7 +253,65 @@ export async function activate(context: vscode.ExtensionContext) {
 					});
 				}
 			);
-		})
+		}),
+
+		vscode.commands.registerCommand("vscode-tsc.watchProject", ({ fsPath }: vscode.Uri) => {
+			if (getActiveWatches().includes(fsPath)) {
+				vscode.window.showWarningMessage("This file is already added to watches.");
+				return;
+			}
+
+			watchProject(fsPath);
+			vscode.window.showInformationMessage("File added to watches!");
+		}),
+
+		vscode.commands.registerCommand("vscode-tsc.showActiveWatches", () => {
+			// @ts-ignore
+			const _this = this as { outputChannel: vscode.OutputChannel };
+			if (typeof _this.outputChannel === "undefined") _this.outputChannel = vscode.window.createOutputChannel("Project Watches");
+
+			const activeWatches = getActiveWatches();
+
+			_this.outputChannel.clear();
+			if (activeWatches.length > 0) activeWatches.forEach((config) => _this.outputChannel.appendLine(config));
+			else _this.outputChannel.appendLine("No Watch Available.");
+
+			_this.outputChannel.show();
+		}),
+
+		vscode.commands.registerCommand("vscode-tsc.destroyWatch", async () => {
+			const activeWatches = getActiveWatches();
+
+			if (activeWatches.length > 0) {
+				const rootDir = vscode.workspace.workspaceFolders![0].uri.fsPath;
+				const watchLabels = activeWatches.map((w) => path.relative(rootDir, w));
+				const items = watchLabels.map((item, i) => {
+					return {
+						label: item,
+						detail: activeWatches[i],
+					} as vscode.QuickPickItem;
+				});
+
+				const selection = await vscode.window.showQuickPick(items, {
+					canPickMany: false,
+					placeHolder: "Choose watch to destroy",
+					title: "Destroy Watch",
+				});
+				if (!selection) return;
+
+				destroyWatch(selection.detail!);
+				vscode.window.showInformationMessage("Watch destroyed.");
+			} else {
+				vscode.window.showInformationMessage("No active watches.");
+			}
+		}),
+
+		// extension api
+		// compiles typescript with given CompilerOptions and returns it
+		vscode.commands.registerCommand(
+			"vscode-tsc.api.transpileModule",
+			(source: string, options: TranspileOptions): string => transpileModule(source, options).outputText
+		)
 	);
 }
 

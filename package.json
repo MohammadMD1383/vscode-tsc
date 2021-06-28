@@ -3,6 +3,7 @@
 	"name": "vscode-tsc",
 	"displayName": "VSCode Typescript Compiler",
 	"description": "A tool for compiling typescript without need of NodeJS to be installed",
+	"icon": "res/icon/logo@128.png",
 	"version": "1.0.0",
 	"repository": "https://github.com/MohammadMD1383/vscode-tsc",
 	"homepage": "https://github.com/MohammadMD1383/vscode-tsc/blob/master/README.md",
@@ -36,6 +37,24 @@
 				"title": "Compile Project",
 				"category": "VSCode TSC",
 				"enablement": "vscode-tsc.isTsProject"
+			},
+			{
+				"command": "vscode-tsc.watchProject",
+				"title": "Watch Project",
+				"category": "VSCode TSC",
+				"enablement": "vscode-tsc.isTsProject && resourceFilename == tsconfig.json"
+			},
+			{
+				"command": "vscode-tsc.showActiveWatches",
+				"title": "Show Active Watches",
+				"category": "VSCode TSC",
+				"enablement": "vscode-tsc.isTsProject"
+			},
+			{
+				"command": "vscode-tsc.destroyWatch",
+				"title": "Destroy Watch",
+				"category": "VSCode TSC",
+				"enablement": "vscode-tsc.isTsProject"
 			}
 		],
 		"menus": {
@@ -44,6 +63,13 @@
 					"command": "vscode-tsc.compileCurrentSingleFile",
 					"when": "editorLangId == typescript",
 					"group": "navigation"
+				}
+			],
+			"explorer/context": [
+				{
+					"command": "vscode-tsc.watchProject",
+					"when": "vscode-tsc.isTsProject && resourceFilename == tsconfig.json",
+					"group": "2_workspace"
 				}
 			]
 		},
