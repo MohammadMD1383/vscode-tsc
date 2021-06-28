@@ -3,6 +3,7 @@
 		"out": true,
 		"**/test": true,
 		"node_modules": true,
+		"releases": true,
 		"**/*.map": true
 	},
 	"search.exclude": {
