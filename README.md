@@ -54,7 +54,7 @@ Current Commands:
     -   parameters
         -   `string` source: typescript code
         -   `ts.TranspileOptions` options: options for compilation
-    -   returns: `ts.TranspileOutput`
+    -   returns: `string`: compiled javascript
 
 ### Notice
 
