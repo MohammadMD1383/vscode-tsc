@@ -11,7 +11,7 @@ assignees: ''
 anything you want to be added...
 
 **If you want please add some code to be implemented in extension**
-A clear and concise description of what you want to happen.
+`function mySuggestion() { doSomeThing... }`
 
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
