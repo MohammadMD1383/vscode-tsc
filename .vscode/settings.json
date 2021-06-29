@@ -4,7 +4,8 @@
 		"**/test": true,
 		"node_modules": true,
 		"releases": true,
-		"**/*.map": true
+		"**/*.map": true,
+		".github": true
 	},
 	"search.exclude": {
 		"out": true,
