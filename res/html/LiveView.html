@@ -79,7 +79,7 @@
 					let highlight = event.data.highlight;
 					const lineNo = highlight.line - 1,
 						start = highlight.column,
-						end = highlight.lastColumn === null ? -1 : highlight.lastColumn + 1;
+						end = highlight.lastColumn === null ? codeHolder.textContent.split("\n")[lineNo].length : highlight.lastColumn + 1;
 
 					doHighlight(lineNo, start, end - start);
 					break;
@@ -87,9 +87,6 @@
 		});
 
 		function doHighlight(row, col, length) {
-			if (length === 0) length = 1;
-			else if (length < 0) length = 0;
-
 			highlighter.style.width = `${length * charWidth}px`;
 			highlighter.style.height = `${lineHeight}px`;
 			highlighter.style.top = `${row * lineHeight}px`;

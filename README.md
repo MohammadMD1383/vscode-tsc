@@ -6,6 +6,7 @@ Compile typescript in visual studio code without need of installing **Node.js**
 
 -   [Features](#features)
 -   [How To](#how-to)
+-   [Configurations](#configurations)
 -   [Extension API](#extension-api)
 -   [Notice](#notice)
 -   [Known Issues](#known-issues)
@@ -44,6 +45,14 @@ Compile typescript in visual studio code without need of installing **Node.js**
         - **destroy watch**: destroys an active watch
         - **show active watches**: shows the current active watches
 
+### Configurations
+
+-   Single Compilation Configurations
+    -   `vscode-tsc.singleCompilationCompilerOptions.module`
+    -   `vscode-tsc.singleCompilationCompilerOptions.target`
+    -   `vscode-tsc.singleCompilationCompilerOptions.strict`
+    -   `vscode-tsc.singleCompilationCompilerOptions.removeComments`
+
 ### Extension API
 
 This extension provides some commands that can be used by other extensions
@@ -63,6 +72,8 @@ Current Commands:
 ### Known Issues
 
 -   nothing yet!
+
+---
 
 <p id="reference">
 *: needs <code>tsconfig.json</code> file to be in the root of typescript project
