@@ -21,6 +21,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 4);
 		statusBarItem.command = "vscode-tsc.compileProject";
 		statusBarItem.text = "$(zap) Compile Project";
+		statusBarItem.tooltip = "Typescript";
 		context.subscriptions.push(statusBarItem);
 
 		checkForTsConfig(statusBarItem);

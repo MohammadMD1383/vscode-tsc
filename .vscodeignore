@@ -9,3 +9,5 @@ src/**
 **/*.map
 **/*.ts
 TODO.md
+
+!node_modules/typescript/lib/

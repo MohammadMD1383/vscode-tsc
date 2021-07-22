@@ -4,7 +4,7 @@
 	"displayName": "VSCode Typescript Compiler",
 	"description": "A tool for compiling typescript without need of NodeJS to be installed",
 	"icon": "res/icon/logo@128.png",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"repository": "https://github.com/MohammadMD1383/vscode-tsc",
 	"homepage": "https://github.com/MohammadMD1383/vscode-tsc/blob/master/README.md",
 	"bugs": {
